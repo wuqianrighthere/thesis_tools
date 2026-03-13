@@ -1,0 +1,145 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - email: string (required, valid email)
+    //   - displayName: string (optional)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: modelCards
+    // Document ID: {cardId}
+    // Fields:
+    //   - userId: string (required, immutable, must match auth.uid)
+    //   - title: string (required, max 500 chars)
+    //   - journal: string (required, max 200 chars)
+    //   - conceptualMap: string (optional, max 1000 chars)
+    //   - iv: list of strings (required, max 10 items, max 100 chars each)
+    //   - mediator: list of strings (optional, max 10 items, max 100 chars each)
+    //   - moderator: list of strings (optional, max 10 items, max 100 chars each)
+    //   - dv: list of strings (required, max 10 items, max 100 chars each)
+    //   - wowFactor: string (optional, max 2000 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: simulatedTopics
+    // Document ID: {topicId}
+    // Fields:
+    //   - userId: string (required, immutable, must match auth.uid)
+    //   - iv: string (required, max 100 chars)
+    //   - mediator: string (optional, max 100 chars)
+    //   - moderator: string (optional, max 100 chars)
+    //   - dv: string (required, max 100 chars)
+    //   - notes: string (optional, max 2000 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(val, minLen, maxLen) {
+      return val == null || (val is string && val.size() >= minLen && val.size() <= maxLen);
+    }
+
+    function isValidStringList(list, maxItems, maxStringLen) {
+      return list is list && list.size() <= maxItems &&
+        (list.size() == 0 || (list[0] is string && list[0].size() <= maxStringLen));
+        // Note: Firestore rules don't easily support mapping over lists to check every item's length.
+        // We'll do a basic check here and rely on client-side validation, but ensure it's a list.
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+             isValidEmail(data.email) &&
+             data.createdAt is timestamp &&
+             (!('displayName' in data) || isValidString(data.displayName, 0, 100));
+    }
+
+    function isValidModelCard(data) {
+      return data.keys().hasAll(['userId', 'title', 'journal', 'iv', 'dv', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.title, 1, 500) &&
+             isValidString(data.journal, 1, 200) &&
+             isValidOptionalString(data.get('conceptualMap', null), 0, 1000) &&
+             isValidStringList(data.iv, 10, 100) &&
+             isValidStringList(data.get('mediator', []), 10, 100) &&
+             isValidStringList(data.get('moderator', []), 10, 100) &&
+             isValidStringList(data.dv, 10, 100) &&
+             isValidOptionalString(data.get('wowFactor', null), 0, 2000) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidSimulatedTopic(data) {
+      return data.keys().hasAll(['userId', 'iv', 'dv', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.iv, 1, 100) &&
+             isValidOptionalString(data.get('mediator', null), 0, 100) &&
+             isValidOptionalString(data.get('moderator', null), 0, 100) &&
+             isValidString(data.dv, 1, 100) &&
+             isValidOptionalString(data.get('notes', null), 0, 2000) &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner(userId);
+    }
+
+    match /modelCards/{cardId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidModelCard(request.resource.data);
+      allow update: if isDocOwner() && isValidModelCard(request.resource.data) &&
+                    request.resource.data.userId == resource.data.userId &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isDocOwner();
+    }
+
+    match /simulatedTopics/{topicId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidSimulatedTopic(request.resource.data);
+      allow update: if isDocOwner() && isValidSimulatedTopic(request.resource.data) &&
+                    request.resource.data.userId == resource.data.userId &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isDocOwner();
+    }
+  }
+}
