@@ -12,6 +12,8 @@ import Dashboard from './pages/Dashboard';
 import ModelEntry from './pages/ModelEntry';
 import VariablesLab from './pages/VariablesLab';
 import ModelList from './pages/ModelList';
+import NewIdeas from './pages/NewIdeas';
+import Admin from './pages/Admin';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -37,7 +39,9 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="entry" element={<ModelEntry />} />
             <Route path="lab" element={<VariablesLab />} />
+            <Route path="ideas" element={<NewIdeas />} />
             <Route path="models" element={<ModelList />} />
+            <Route path="admin" element={<Admin />} />
           </Route>
         </Routes>
       </Router>

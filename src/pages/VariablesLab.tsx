@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../components/AuthContext';
+import { format } from 'date-fns';
 import clsx from 'clsx';
 
 export default function VariablesLab() {
   const { user } = useAuth();
   const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUploader, setSelectedUploader] = useState<string>('All');
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   // Simulation State
   const [selectedIV, setSelectedIV] = useState<string | null>(null);
@@ -18,7 +21,7 @@ export default function VariablesLab() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'modelCards'), where('userId', '==', user.uid));
+    const q = query(collection(db, 'modelCards'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
       setModels(data);
@@ -27,9 +30,44 @@ export default function VariablesLab() {
     return unsubscribe;
   }, [user]);
 
+  const getUploaderName = (model: any) => {
+    if (model.uploaderName) return model.uploaderName;
+    const generatedTitles = [
+      "The impact of transformational leadership on innovative work behavior",
+      "Abusive supervision and turnover intention",
+      "High-Performance Work Systems and Task Performance",
+      "Telecommuting and Job Satisfaction",
+      "Inclusive Leadership and Team Creativity",
+      "Servant Leadership and OCB",
+      "Workplace Ostracism and Counterproductive Work Behavior",
+      "Algorithmic Management and Worker Well-being"
+    ];
+    if (generatedTitles.includes(model.title)) return "Generated";
+    return "Unknown";
+  };
+
+  const uploaders = ['All', ...Array.from(new Set(models.map(getUploaderName)))];
+  
+  const availableDates = Array.from(new Set(models.map(m => {
+    if (m.createdAt) {
+      return format(m.createdAt.toDate(), 'yyyy-MM-dd');
+    }
+    return null;
+  }).filter(Boolean) as string[])).sort((a, b) => b.localeCompare(a));
+  
+  const filteredModels = models.filter(m => {
+    const uploaderMatch = selectedUploader === 'All' || getUploaderName(m) === selectedUploader;
+    let dateMatch = true;
+    if (selectedDate && m.createdAt) {
+      const modelDate = format(m.createdAt.toDate(), 'yyyy-MM-dd');
+      dateMatch = modelDate === selectedDate;
+    }
+    return uploaderMatch && dateMatch;
+  });
+
   // Extract unique variables
   const extractUnique = (key: string): string[] => {
-    const all = models.flatMap(m => m[key] || []);
+    const all = filteredModels.flatMap(m => m[key] || []);
     return Array.from(new Set(all)).filter(Boolean) as string[];
   };
 
@@ -47,6 +85,7 @@ export default function VariablesLab() {
     try {
       await addDoc(collection(db, 'simulatedTopics'), {
         userId: user.uid,
+        uploaderName: user.displayName || user.email?.split('@')[0] || 'Unknown',
         iv: selectedIV,
         mediator: selectedM,
         moderator: selectedW,
@@ -88,7 +127,7 @@ export default function VariablesLab() {
               key={item}
               onClick={() => onSelect(selected === item ? null : item)}
               className={clsx(
-                "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border",
+                "w-full text-left px-3 py-2 rounded-lg text-sm transition-all cursor-pointer active:scale-95 border",
                 selected === item
                   ? `${bgClass} ${colorClass} border-transparent font-medium`
                   : "bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100"
@@ -104,9 +143,34 @@ export default function VariablesLab() {
 
   return (
     <div className="space-y-8 h-full flex flex-col">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-stone-900">Variables Lab</h1>
-        <p className="text-stone-500 mt-2">Mix and match variables from your reading to generate novel topics.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-stone-900">Variables Lab</h1>
+          <p className="text-stone-500 mt-2">Mix and match variables from your reading to generate novel topics.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div>
+            <label className="block text-xs font-medium text-stone-500 mb-1">Filter by Date</label>
+            <select 
+              value={selectedDate} 
+              onChange={e => setSelectedDate(e.target.value)}
+              className="block w-full rounded-md border-stone-300 shadow-sm focus:border-stone-500 focus:ring-stone-500 sm:text-sm p-2 border bg-stone-50"
+            >
+              <option value="">All Dates</option>
+              {availableDates.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-stone-500 mb-1">Filter by Uploader</label>
+            <select 
+              value={selectedUploader} 
+              onChange={e => setSelectedUploader(e.target.value)}
+              className="block w-full rounded-md border-stone-300 shadow-sm focus:border-stone-500 focus:ring-stone-500 sm:text-sm p-2 border bg-stone-50"
+            >
+              {uploaders.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Simulation Board */}
@@ -152,7 +216,7 @@ export default function VariablesLab() {
           <button
             onClick={handleSaveSimulation}
             disabled={!selectedIV || !selectedDV || simulating}
-            className="px-8 py-3 bg-white text-stone-900 font-medium rounded-lg hover:bg-stone-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-3 bg-white text-stone-900 font-medium rounded-lg hover:bg-stone-200 transition-all cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
           >
             {simulating ? 'Saving...' : 'Save Simulated Topic'}
           </button>

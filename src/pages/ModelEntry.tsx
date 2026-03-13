@@ -31,6 +31,7 @@ export default function ModelEntry() {
 
       await addDoc(collection(db, 'modelCards'), {
         userId: user.uid,
+        uploaderName: user.displayName || user.email || 'Unknown',
         title: data.title,
         journal: data.journal,
         conceptualMap: data.conceptualMap,
@@ -114,8 +115,8 @@ export default function ModelEntry() {
             type="submit"
             disabled={loading}
             className={clsx(
-              "inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-stone-900 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900 transition-colors",
-              loading && "opacity-50 cursor-not-allowed"
+              "inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-stone-900 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900 transition-all cursor-pointer active:scale-95",
+              loading && "opacity-50 cursor-not-allowed active:scale-100"
             )}
           >
             {loading ? 'Saving...' : 'Save Model Card'}

@@ -39,7 +39,7 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-stone-200">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-stone-900">
-            Topic Sandbox
+            我爱OB毕业论文
           </h2>
           <p className="mt-2 text-center text-sm text-stone-600">
             Reverse-engineer OB research models.
@@ -74,7 +74,7 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-stone-900 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900 transition-colors"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-stone-900 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900 transition-all cursor-pointer active:scale-95"
             >
               {isLogin ? 'Sign in' : 'Sign up'}
             </button>
@@ -94,7 +94,7 @@ export default function Login() {
           <div className="mt-6">
             <button
               onClick={handleGoogleSignIn}
-              className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-stone-300 rounded-md shadow-sm bg-white text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
+              className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-stone-300 rounded-md shadow-sm bg-white text-sm font-medium text-stone-700 hover:bg-stone-50 transition-all cursor-pointer active:scale-95"
             >
               <LogIn className="w-4 h-4" />
               Google
@@ -105,7 +105,7 @@ export default function Login() {
         <div className="text-center mt-4">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-stone-600 hover:text-stone-900"
+            className="text-sm text-stone-600 hover:text-stone-900 transition-all cursor-pointer active:scale-95"
           >
             {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
           </button>

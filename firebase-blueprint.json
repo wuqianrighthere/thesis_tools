@@ -14,6 +14,10 @@
           "type": "string",
           "description": "The user's display name."
         },
+        "role": {
+          "type": "string",
+          "description": "User role, e.g., 'user' or 'admin'."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -21,6 +25,25 @@
         }
       },
       "required": ["email", "createdAt"]
+    },
+    "SystemConfig": {
+      "title": "System Configuration",
+      "description": "Global configuration for the platform.",
+      "type": "object",
+      "properties": {
+        "targetDate": { "type": "string", "format": "date" }
+      },
+      "required": ["targetDate"]
+    },
+    "DailyGoal": {
+      "title": "Daily Goal",
+      "description": "User's daily extraction target.",
+      "type": "object",
+      "properties": {
+        "target": { "type": "number" },
+        "date": { "type": "string", "format": "date" }
+      },
+      "required": ["target", "date"]
     },
     "ModelCard": {
       "title": "Model Card",
@@ -30,6 +53,10 @@
         "userId": {
           "type": "string",
           "description": "The ID of the user who created this card."
+        },
+        "uploaderName": {
+          "type": "string",
+          "description": "The name of the user who uploaded this card."
         },
         "title": {
           "type": "string",
@@ -117,6 +144,14 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
       "description": "Stores user profiles."
+    },
+    "/users/{userId}/dailyGoals/{date}": {
+      "schema": { "$ref": "#/entities/DailyGoal" },
+      "description": "Stores user's daily goals."
+    },
+    "/systemConfig/{configId}": {
+      "schema": { "$ref": "#/entities/SystemConfig" },
+      "description": "Stores global system configuration."
     },
     "/modelCards/{cardId}": {
       "schema": { "$ref": "#/entities/ModelCard" },
