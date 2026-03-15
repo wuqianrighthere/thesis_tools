@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { logAction } from '../utils/logger';
 
 export default function ModelList() {
   const { user } = useAuth();
@@ -32,6 +33,9 @@ export default function ModelList() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setModels(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching model cards:', error);
       setLoading(false);
     });
     return unsubscribe;
@@ -79,9 +83,10 @@ export default function ModelList() {
   };
 
   const confirmDelete = async () => {
-    if (!modelToDelete) return;
+    if (!modelToDelete || !user) return;
     try {
       await deleteDoc(doc(db, 'modelCards', modelToDelete));
+      await logAction(user, 'Delete', 'Models');
       setModelToDelete(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
@@ -103,7 +108,7 @@ export default function ModelList() {
   };
 
   const handleEditSave = async () => {
-    if (!editingModel) return;
+    if (!editingModel || !user) return;
     try {
       const splitTags = (str: string) => str.split(',').map(s => s.trim()).filter(Boolean);
       await updateDoc(doc(db, 'modelCards', editingModel.id), {
@@ -116,6 +121,7 @@ export default function ModelList() {
         dv: splitTags(editForm.dv),
         wowFactor: editForm.wowFactor
       });
+      await logAction(user, 'Update', 'Models');
       setEditingModel(null);
     } catch (error) {
       console.error("Error updating document: ", error);

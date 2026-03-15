@@ -94,6 +94,23 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
+    function isValidActionLog(data) {
+      return data.keys().hasAll(['timestamp', 'operatorName', 'operatorEmail', 'actionType', 'target', 'details']) &&
+             data.timestamp is timestamp &&
+             isValidString(data.operatorName, 1, 100) &&
+             isValidEmail(data.operatorEmail) &&
+             data.actionType in ['Create', 'Update', 'Delete'] &&
+             data.target in ['Models', 'New Ideas'] &&
+             isValidString(data.details, 0, 2000);
+    }
+
+    function isValidUsefulLink(data) {
+      return data.keys().hasAll(['name', 'url', 'createdAt']) &&
+             isValidString(data.name, 1, 100) &&
+             isValidString(data.url, 1, 500) &&
+             data.createdAt is timestamp;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -113,6 +130,20 @@ service cloud.firestore {
     match /systemConfig/{configId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() && isValidSystemConfig(request.resource.data);
+    }
+
+    match /usefulLinks/{linkId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidUsefulLink(request.resource.data);
+      allow update: if isAdmin() && isValidUsefulLink(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAdmin();
+    }
+
+    match /actionLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidActionLog(request.resource.data);
+      allow update: if false;
+      allow delete: if false;
     }
 
     match /modelCards/{cardId} {

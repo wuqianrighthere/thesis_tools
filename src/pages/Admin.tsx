@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, addDoc, deleteDoc, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../components/AuthContext';
+import { Trash2, Plus } from 'lucide-react';
 
 export default function Admin() {
   const { user } = useAuth();
   const [config, setConfig] = useState({ targetDate: '2026-05-15' });
   const [users, setUsers] = useState<any[]>([]);
+  const [links, setLinks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,6 +35,16 @@ export default function Admin() {
       }
     };
     fetchData();
+
+    if (user?.isAdmin) {
+      const q = query(collection(db, 'usefulLinks'), orderBy('createdAt', 'asc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setLinks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }, (error) => {
+        console.error('Error fetching useful links in Admin:', error);
+      });
+      return unsubscribe;
+    }
   }, [user]);
 
   const handleSaveConfig = async (e: React.FormEvent) => {
@@ -54,6 +69,32 @@ export default function Admin() {
     } catch (error) {
       console.error(error);
       alert('Failed to update role.');
+    }
+  };
+
+  const handleAddLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkName || !newLinkUrl) return;
+    try {
+      await addDoc(collection(db, 'usefulLinks'), {
+        name: newLinkName,
+        url: newLinkUrl,
+        createdAt: serverTimestamp()
+      });
+      setNewLinkName('');
+      setNewLinkUrl('');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to add link.');
+    }
+  };
+
+  const handleDeleteLink = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'usefulLinks', id));
+    } catch (error) {
+      console.error(error);
+      alert('Failed to delete link.');
     }
   };
 
@@ -90,6 +131,61 @@ export default function Admin() {
             {saving ? 'Saving...' : 'Save Configuration'}
           </button>
         </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
+        <h2 className="text-lg font-semibold text-stone-900 mb-4">Useful Links Configuration</h2>
+        <form onSubmit={handleAddLink} className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Site Name"
+              required
+              value={newLinkName}
+              onChange={e => setNewLinkName(e.target.value)}
+              className="block w-full rounded-md border-stone-300 shadow-sm focus:border-stone-500 focus:ring-stone-500 sm:text-sm p-2 border bg-stone-50"
+            />
+          </div>
+          <div className="flex-1">
+            <input
+              type="url"
+              placeholder="URL (https://...)"
+              required
+              value={newLinkUrl}
+              onChange={e => setNewLinkUrl(e.target.value)}
+              className="block w-full rounded-md border-stone-300 shadow-sm focus:border-stone-500 focus:ring-stone-500 sm:text-sm p-2 border bg-stone-50"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-stone-900 text-white rounded-md text-sm font-medium hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" /> Add Link
+          </button>
+        </form>
+
+        <div className="space-y-2">
+          {links.length === 0 ? (
+            <p className="text-sm text-stone-500 italic">No useful links configured.</p>
+          ) : (
+            links.map(link => (
+              <div key={link.id} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg border border-stone-200">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-stone-900 truncate">{link.name}</p>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block">
+                    {link.url}
+                  </a>
+                </div>
+                <button
+                  onClick={() => handleDeleteLink(link.id)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-md transition-colors ml-4 shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {user.isSuperAdmin && (

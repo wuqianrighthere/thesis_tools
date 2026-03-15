@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { logAction } from '../utils/logger';
 
 export default function NewIdeas() {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export default function NewIdeas() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setModels(data);
+    }, (error) => {
+      console.error('Error fetching model cards in NewIdeas:', error);
     });
     return unsubscribe;
   }, []);
@@ -39,6 +42,9 @@ export default function NewIdeas() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setIdeas(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching simulated topics:', error);
       setLoading(false);
     });
     return unsubscribe;
@@ -79,9 +85,10 @@ export default function NewIdeas() {
   };
 
   const confirmDelete = async () => {
-    if (!ideaToDelete) return;
+    if (!ideaToDelete || !user) return;
     try {
       await deleteDoc(doc(db, 'simulatedTopics', ideaToDelete));
+      await logAction(user, 'Delete', 'New Ideas');
       setIdeaToDelete(null);
     } catch (error) {
       console.error("Error deleting idea: ", error);
@@ -99,9 +106,10 @@ export default function NewIdeas() {
   };
 
   const handleUpdate = async () => {
-    if (!editingIdea) return;
+    if (!editingIdea || !user) return;
     try {
       await updateDoc(doc(db, 'simulatedTopics', editingIdea.id), editForm);
+      await logAction(user, 'Update', 'New Ideas');
       setEditingIdea(null);
     } catch (error) {
       console.error("Error updating idea: ", error);

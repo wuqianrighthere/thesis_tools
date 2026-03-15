@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { useAuth } from '../components/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
+import { logAction } from '../utils/logger';
 
 type FormValues = {
   title: string;
@@ -42,6 +43,9 @@ export default function ModelEntry() {
         wowFactor: data.wowFactor,
         createdAt: serverTimestamp(),
       });
+      
+      await logAction(user, 'Create', 'Models');
+      
       reset();
       navigate('/models');
     } catch (error) {

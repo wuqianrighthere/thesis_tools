@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { useAuth } from '../components/AuthContext';
 import { format } from 'date-fns';
 import clsx from 'clsx';
+import { logAction } from '../utils/logger';
 
 export default function VariablesLab() {
   const { user } = useAuth();
@@ -25,6 +26,9 @@ export default function VariablesLab() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
       setModels(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching model cards in VariablesLab:', error);
       setLoading(false);
     });
     return unsubscribe;
@@ -92,6 +96,9 @@ export default function VariablesLab() {
         dv: selectedDV,
         createdAt: serverTimestamp(),
       });
+      
+      await logAction(user, 'Create', 'New Ideas');
+      
       alert('Simulated topic saved successfully!');
       // Reset selections
       setSelectedIV(null);
