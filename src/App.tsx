@@ -16,6 +16,7 @@ import NewIdeas from './pages/NewIdeas';
 import Admin from './pages/Admin';
 import ActionLogs from './pages/ActionLogs';
 import UsefulLinks from './pages/UsefulLinks';
+import VariablesPool from './pages/VariablesPool';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="lab" element={<VariablesLab />} />
             <Route path="ideas" element={<NewIdeas />} />
             <Route path="models" element={<ModelList />} />
+            <Route path="variables" element={<VariablesPool />} />
             <Route path="logs" element={<ActionLogs />} />
             <Route path="links" element={<UsefulLinks />} />
             <Route path="admin" element={<Admin />} />

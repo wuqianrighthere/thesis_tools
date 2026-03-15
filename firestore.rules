@@ -111,9 +111,20 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
+    function isValidVariable(data) {
+      return data.keys().hasAll(['explanation']) &&
+             isValidString(data.explanation, 0, 5000) &&
+             (!('name' in data) || isValidString(data.name, 1, 200));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /variables/{variableId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidVariable(request.resource.data);
+    }
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isSuperAdmin();

@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { LayoutDashboard, PlusCircle, FlaskConical, List, Lightbulb, LogOut, Settings, History, Menu, X, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FlaskConical, List, Lightbulb, LogOut, Settings, History, Menu, X, ExternalLink, Component } from 'lucide-react';
 import clsx from 'clsx';
 import { useState } from 'react';
 
@@ -16,7 +16,8 @@ export default function Layout() {
     { name: 'Add Model', path: '/entry', icon: PlusCircle },
     { name: 'Variables Lab', path: '/lab', icon: FlaskConical },
     { name: 'New Ideas', path: '/ideas', icon: Lightbulb },
-    { name: 'Models', path: '/models', icon: List },
+    { name: 'Models Pool', path: '/models', icon: List },
+    { name: 'Variables Pool', path: '/variables', icon: Component },
   ];
 
   if (user?.isAdmin) {
