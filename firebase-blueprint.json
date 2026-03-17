@@ -138,9 +138,43 @@
         }
       },
       "required": ["userId", "iv", "dv", "createdAt"]
+    },
+    "TaxonomyNode": {
+      "title": "Taxonomy Node",
+      "description": "A category node in the variable taxonomy tree.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the category."
+        },
+        "parentId": {
+          "type": "string",
+          "description": "The ID of the parent category, or null if it's a root category."
+        },
+        "level": {
+          "type": "number",
+          "description": "The depth level of the category (1, 2, or 3)."
+        },
+        "variables": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The variables assigned to this category."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the node was created."
+        }
+      },
+      "required": ["name", "level", "variables", "createdAt"]
     }
   },
   "firestore": {
+    "/taxonomies/{nodeId}": {
+      "schema": { "$ref": "#/entities/TaxonomyNode" },
+      "description": "Stores variable taxonomy categories."
+    },
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
       "description": "Stores user profiles."

@@ -117,9 +117,25 @@ service cloud.firestore {
              (!('name' in data) || isValidString(data.name, 1, 200));
     }
 
+    function isValidTaxonomyNode(data) {
+      return data.keys().hasAll(['name', 'level', 'variables', 'createdAt']) &&
+             isValidString(data.name, 1, 100) &&
+             data.level is number && data.level >= 1 && data.level <= 3 &&
+             data.variables is list &&
+             data.createdAt is timestamp &&
+             (!('parentId' in data) || data.parentId == null || isValidString(data.parentId, 1, 100));
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /taxonomies/{nodeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidTaxonomyNode(request.resource.data);
+      allow update: if isAuthenticated() && isValidTaxonomyNode(request.resource.data) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAuthenticated();
+    }
 
     match /variables/{variableId} {
       allow read: if isAuthenticated();

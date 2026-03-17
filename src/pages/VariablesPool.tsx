@@ -10,7 +10,7 @@ export default function VariablesPool() {
   const runnerRef = useRef<Matter.Runner | null>(null);
   const mouseConstraintRef = useRef<Matter.MouseConstraint | null>(null);
 
-  const [varNames, setVarNames] = useState<string[]>([]);
+  const [varNames, setVarNames] = useState<{name: string, type: string}[]>([]);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
   const [selectedVar, setSelectedVar] = useState<string | null>(null);
   const [editExplanation, setEditExplanation] = useState('');
@@ -25,11 +25,22 @@ export default function VariablesPool() {
     const q = query(collection(db, 'modelCards'));
     const unsub = onSnapshot(q, snap => {
       const models = snap.docs.map(d => d.data());
-      const ivs = models.flatMap(m => m.iv || []);
-      const dvs = models.flatMap(m => m.dv || []);
-      const mediators = models.flatMap(m => m.mediator || []);
-      const moderators = models.flatMap(m => m.moderator || []);
-      const uniqueVars = Array.from(new Set([...ivs, ...dvs, ...mediators, ...moderators])).filter(Boolean) as string[];
+      const ivs = new Set(models.flatMap(m => m.iv || []));
+      const dvs = new Set(models.flatMap(m => m.dv || []));
+      const mediators = new Set(models.flatMap(m => m.mediator || []));
+      const moderators = new Set(models.flatMap(m => m.moderator || []));
+      
+      const allNames = Array.from(new Set([...ivs, ...dvs, ...mediators, ...moderators])).filter(Boolean) as string[];
+      
+      const uniqueVars = allNames.map(name => {
+        let type = 'iv';
+        if (ivs.has(name)) type = 'iv';
+        else if (dvs.has(name)) type = 'dv';
+        else if (mediators.has(name)) type = 'mediator';
+        else if (moderators.has(name)) type = 'moderator';
+        return { name, type };
+      });
+      
       setVarNames(uniqueVars);
     }, (error) => {
       console.error('Error fetching model cards for variables:', error);
@@ -98,16 +109,33 @@ export default function VariablesPool() {
 
     // Create bubbles
     const radius = 60; // 120px diameter
-    const bodies = varNames.map((name, i) => {
+    const bodies = varNames.map((v, i) => {
       const x = Math.random() * (width - radius * 2) + radius;
       const y = -Math.random() * 500 - radius - 100; // Drop from above, safely below ceiling
+      
+      let fillStyle = '#1e3a8a'; // blue-900 (IV)
+      let strokeStyle = '#3b82f6'; // blue-500
+      
+      if (v.type === 'dv') {
+        fillStyle = '#064e3b'; // emerald-900
+        strokeStyle = '#10b981'; // emerald-500
+      } else if (v.type === 'mediator') {
+        fillStyle = '#581c87'; // purple-900
+        strokeStyle = '#a855f7'; // purple-500
+      } else if (v.type === 'moderator') {
+        fillStyle = '#78350f'; // amber-900
+        strokeStyle = '#f59e0b'; // amber-500
+      }
+
       return Matter.Bodies.circle(x, y, radius, {
         restitution: 0.6,
         friction: 0.1,
         density: 0.001,
-        label: name,
+        label: v.name,
         render: {
-          fillStyle: getColor(name)
+          fillStyle,
+          strokeStyle,
+          lineWidth: 2
         }
       });
     });
@@ -163,7 +191,7 @@ export default function VariablesPool() {
       context.font = '12px Inter, sans-serif';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
-      context.fillStyle = '#1c1917'; // stone-900
+      context.fillStyle = '#ffffff'; // white text for dark bubbles
 
       bodies.forEach(body => {
         const { x, y } = body.position;
@@ -276,7 +304,7 @@ export default function VariablesPool() {
     };
   }, [varNames.join(',')]); // Re-run if variables list changes
 
-  // Helper to generate consistent pastel colors
+  // Helper to generate consistent pastel colors (no longer used, but keeping just in case)
   const getColor = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
